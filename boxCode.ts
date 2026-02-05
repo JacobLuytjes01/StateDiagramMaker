@@ -33,7 +33,7 @@ function box(text: string, height: number = 3, width: number = 1): String[][] {
 /**
  * @param {String[][][]} boxes - Array of boxes
  * @param {number[]} localBoxConnections - 0 for no connections, 1 for right arrow, 2 for left arrow, 3 for both.
- * @param {number[][]} farBoxConnections - An array of [From, To, ArrowType, length], 1 for "From to To" arrow, 2 for "To to From" arrow, 3 for both.
+ * @param {number[][]} farBoxConnections - An array of [From, To, ArrowType, length], ArrowType same as localBoxConnections.
  * @returns {String[][]} 2D String array that contains all the boxes.
  */
 function board(boxes: String[][][], localBoxConnections: number[] = new Array(boxes.length).fill(0), farBoxConnections: number[][] | null = null): String[][] {
@@ -80,38 +80,37 @@ function board(boxes: String[][][], localBoxConnections: number[] = new Array(bo
                 fullBoard[(largestBox-1)/2+rightArrowExists][pos-3] = "-";
                 fullBoard[(largestBox-1)/2+rightArrowExists][pos-4] = "<";
             }
-
         }
     }
     if (farBoxConnections != null) {
         for (let i = 0; i < farBoxConnections.length; i++) {
-            let pos1 = (boxes[farBoxConnections[i][0]][0].length+1) / 2;
-            let pos2 = (boxes[farBoxConnections[i][1]][0].length+1) / 2;
+            let pos1 = Math.floor((boxes[farBoxConnections[i][0]][0].length+1) / 2);
+            let pos2 = Math.floor((boxes[farBoxConnections[i][1]][0].length+1) / 2);
             for (let j = 0; j < farBoxConnections[i][0]; j++) {
-                pos1 += boxes[i][0].length + 4;
+                pos1 += boxes[j][0].length + 4;
             }
             for (let j = 0; j < farBoxConnections[i][1]; j++) {
-                pos2 += boxes[i][0].length + 4;
+                pos2 += boxes[j][0].length + 4;
             }
-            let startLines: number = Math.min(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length)+1;
-            let endLines: number = Math.max(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length) + farBoxConnections[i][3];
+            const offset1 = Math.floor((largestBox-boxes[farBoxConnections[i][0]].length)/2);
+            const offset2 = Math.floor((largestBox-boxes[farBoxConnections[i][1]].length)/2);
+            const startLines: number = Math.min(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length);
+            const endLines: number = Math.max(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length) + farBoxConnections[i][3];
             for (let j = startLines; j < endLines; j++) {
-                if (j >= boxes[farBoxConnections[i][0]].length) {
+                if (j >= boxes[farBoxConnections[i][0]].length+offset1) {
                     fullBoard[j][pos1] = "|";
                 }
-                if (j >= boxes[farBoxConnections[i][1]].length) {
+                if (j >= boxes[farBoxConnections[i][1]].length+offset2) {
                     fullBoard[j][pos2] = "|";
                 }
             }
             let leftArrowExists : number = farBoxConnections[i][2] >= 2 ? 1 : 0;
             let rightArrowExists : number = farBoxConnections[i][2] % 2;
             if (rightArrowExists !== 0) {
-                let offset = (largestBox-boxes[farBoxConnections[i][0]].length)/2;
-                fullBoard[boxes[farBoxConnections[i][0]].length+offset][pos1] = "^";
+                fullBoard[boxes[farBoxConnections[i][0]].length+offset1][pos1] = "^";
             }
             if (leftArrowExists) {
-                let offset = (largestBox-boxes[farBoxConnections[i][1]].length)/2;
-                fullBoard[boxes[farBoxConnections[i][1]].length+offset][pos2] = "^";
+                fullBoard[boxes[farBoxConnections[i][1]].length+offset2][pos2] = "^";
             }
             fullBoard[endLines][pos1] = "└";
             fullBoard[endLines][pos2] = "┘";
@@ -123,7 +122,15 @@ function board(boxes: String[][][], localBoxConnections: number[] = new Array(bo
     return fullBoard;
 }
 
-let test = board([box("Happy", 5, 3), box("Long Word", 7), box("TEST"), box("TEST", 3, 3), box("Final")], [3, 1, 0, 2], [[0,1,3,2]]);
+let test = board([box("Start", 5, 3), box("Long Word", 7), box("TEST"), box("TEST", 3, 3), box("Final")], [3, 1, 0, 2], [[0,2,1,5], [1,3,0,1]]);
+for (let i = 0; i < test.length; i++) {
+    console.log(test[i].join(""));
+}
+test = board([box("Start"), box("Playing"), box("Lose"), box("Win")], [1, 1, 0], [[1,3,2,1]]);
+for (let i = 0; i < test.length; i++) {
+    console.log(test[i].join(""));
+}
+test = board([box("One"), box("2"), box("Box with Three in it"), box("four")], [0,0,0], [[0,3,3,1]]);
 for (let i = 0; i < test.length; i++) {
     console.log(test[i].join(""));
 }
