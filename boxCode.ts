@@ -1,4 +1,4 @@
-const enum Arrow {
+export const enum Arrow {
     None,
     Right,
     Left,
@@ -12,7 +12,7 @@ const BOX_GAP = 4;
  * @param {number} width - The spacing on the left and right of the word.
  * @returns {string[][]} 2D string array that contains a box with a word in it.
  */
-function box(text: string, height: number = 3, width: number = 1): string[][] {
+export function box(text: string, height: number = 3, width: number = 1): string[][] {
     if (height % 2 === 0) {
         throw new Error("height must be a odd number");
     }
@@ -38,13 +38,51 @@ function box(text: string, height: number = 3, width: number = 1): string[][] {
     return boxes;
 }
 
+function drawLongArrows(boxes: string[][][], fullBoard: string[][], farBoxConnections: Array<[from: number, to: number, arrow: Arrow, length: number]>, largestBox: number) {
+    for (let i = 0; i < farBoxConnections.length; i++) {
+        let pos1 = Math.floor((boxes[farBoxConnections[i][0]][0].length+1) / 2);
+        let pos2 = Math.floor((boxes[farBoxConnections[i][1]][0].length+1) / 2);
+        for (let j = 0; j < farBoxConnections[i][0]; j++) {
+            pos1 += boxes[j][0].length + BOX_GAP;
+        }
+        for (let j = 0; j < farBoxConnections[i][1]; j++) {
+            pos2 += boxes[j][0].length + BOX_GAP;
+        }
+        const offset1 = Math.floor((largestBox-boxes[farBoxConnections[i][0]].length)/2);
+        const offset2 = Math.floor((largestBox-boxes[farBoxConnections[i][1]].length)/2);
+        const startLines: number = Math.min(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length);
+        const endLines: number = Math.max(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length) + farBoxConnections[i][3];
+        for (let j = startLines; j < endLines; j++) {
+            if (j >= boxes[farBoxConnections[i][0]].length+offset1) {
+                fullBoard[j][pos1] = "|";
+            }
+            if (j >= boxes[farBoxConnections[i][1]].length+offset2) {
+                fullBoard[j][pos2] = "|";
+            }
+        }
+        const leftArrowExists : number = farBoxConnections[i][2] >= 2 ? 1 : 0;
+        const rightArrowExists : number = farBoxConnections[i][2] % 2;
+        if (leftArrowExists) {
+            fullBoard[boxes[farBoxConnections[i][0]].length+offset1][pos1] = "^";
+        }
+        if (rightArrowExists !== 0) {
+            fullBoard[boxes[farBoxConnections[i][1]].length+offset2][pos2] = "^";
+        }
+        fullBoard[endLines][pos1] = "└";
+        fullBoard[endLines][pos2] = "┘";
+        for (let j = pos1+1; j < pos2; j++) {
+            fullBoard[endLines][j] = "-";
+        }
+    }
+}
+
 /**
  * @param {string[][][]} boxes - Array of boxes
  * @param {Arrow[]} localBoxConnections - Can use Arrow.None, Arrow.Right, Arrow.Left, Arrow.Both or 0 for no arrows, 1 for right arrow, 2 for left arrow, 3 for both.
  * @param {number[][]} farBoxConnections - An array of [From, To, ArrowType, length], ArrowType same as localBoxConnections.
  * @returns {string[][]} 2D string array that contains a board of boxes and arrows.
  */
-function board(boxes: string[][][], localBoxConnections: Arrow[] = new Array(boxes.length).fill(Arrow.None), farBoxConnections: Array<[from: number, to: number, arrow: Arrow, length: number]> = []): string[][] {
+export function board(boxes: string[][][], localBoxConnections: Arrow[] = new Array(boxes.length).fill(Arrow.None), farBoxConnections: Array<[from: number, to: number, arrow: Arrow, length: number]> = []): string[][] {
     const fullBoard: string[][] = [];
     let boardWidth: number = boxes.length * BOX_GAP;
     let boxesHeight: number = 3;
@@ -92,70 +130,7 @@ function board(boxes: string[][][], localBoxConnections: Arrow[] = new Array(box
         }
     }
     if (farBoxConnections.length != 0) {
-        for (let i = 0; i < farBoxConnections.length; i++) {
-            let pos1 = Math.floor((boxes[farBoxConnections[i][0]][0].length+1) / 2);
-            let pos2 = Math.floor((boxes[farBoxConnections[i][1]][0].length+1) / 2);
-            for (let j = 0; j < farBoxConnections[i][0]; j++) {
-                pos1 += boxes[j][0].length + BOX_GAP;
-            }
-            for (let j = 0; j < farBoxConnections[i][1]; j++) {
-                pos2 += boxes[j][0].length + BOX_GAP;
-            }
-            const offset1 = Math.floor((largestBox-boxes[farBoxConnections[i][0]].length)/2);
-            const offset2 = Math.floor((largestBox-boxes[farBoxConnections[i][1]].length)/2);
-            const startLines: number = Math.min(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length);
-            const endLines: number = Math.max(boxes[farBoxConnections[i][0]].length, boxes[farBoxConnections[i][1]].length) + farBoxConnections[i][3];
-            for (let j = startLines; j < endLines; j++) {
-                if (j >= boxes[farBoxConnections[i][0]].length+offset1) {
-                    fullBoard[j][pos1] = "|";
-                }
-                if (j >= boxes[farBoxConnections[i][1]].length+offset2) {
-                    fullBoard[j][pos2] = "|";
-                }
-            }
-            const leftArrowExists : number = farBoxConnections[i][2] >= 2 ? 1 : 0;
-            const rightArrowExists : number = farBoxConnections[i][2] % 2;
-            if (leftArrowExists) {
-                fullBoard[boxes[farBoxConnections[i][0]].length+offset1][pos1] = "^";
-            }
-            if (rightArrowExists !== 0) {
-                fullBoard[boxes[farBoxConnections[i][1]].length+offset2][pos2] = "^";
-            }
-            fullBoard[endLines][pos1] = "└";
-            fullBoard[endLines][pos2] = "┘";
-            for (let j = pos1+1; j < pos2; j++) {
-                fullBoard[endLines][j] = "-";
-            }
-        }
+        drawLongArrows(boxes, fullBoard, farBoxConnections, largestBox);
     }
     return fullBoard;
-}
-
-let test = board([box("Start", 5, 3), box("Long Word", 7), box("TEST"), box("TEST", 3, 3), box("Final")], [Arrow.Both, Arrow.Left, Arrow.None, Arrow.Right], [[0,2,Arrow.Left,5], [1,3,Arrow.None,1]]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
-}
-test = board([box("Start"), box("Playing"), box("Lose"), box("Win")], [Arrow.Left, Arrow.Left, Arrow.None], [[1,3,Arrow.Right,1]]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
-}
-console.log("");
-test = board([box("One"), box("2"), box("Box with Three in it"), box("four")], [Arrow.Left,Arrow.None,Arrow.None], [[0,3,Arrow.Both,1]]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
-}
-console.log("");
-test = board([box("Test"), box("No"), box("Arrows")]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
-}
-console.log("");
-test = board([box("Test"), box("One"), box("Arrows"), box("Test")], [1]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
-}
-console.log("");
-test = board([box("Test", 7), box("One"), box("Arrows"), box("Test")], [1], [[0,3,Arrow.Right,2]]);
-for (let i = 0; i < test.length; i++) {
-    console.log(test[i].join(""));
 }
